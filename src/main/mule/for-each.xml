@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="bf4e6006-71af-4cf1-a2b9-8e56d5a1b474" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="for-eachFlow" doc:id="8f4264f2-2042-4265-8047-557cc935ee8c" >
+		<http:listener doc:name="Listener" doc:id="1c74b827-fd8e-40ca-b2f9-cb173036ba45" config-ref="HTTP_Listener_config" path="/foreach"/>
+		<logger level="INFO" doc:name="start Logger" doc:id="87ee5aca-5ec9-4782-9ae5-2509c2ed62ba" message="for each flow started"/>
+		<!-- [STUDIO:"1,2,3,4,5"]<ee:transform doc:name="1,2,3,4,5" doc:id="cbeeda38-ded8-468b-a902-7284d4255e90" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+&#45;&#45;-
+[1,2,3,4,5&#93;&#93;&#93;></ee:set-payload>
+			</ee:message>
+		</ee:transform> [STUDIO] -->
+		<set-variable value='#[[1,2,3,"a","b",4,5]]' doc:name="Set Variable" doc:id="6e5c564c-04ae-4fcd-bc63-99b4dfae4795" variableName="initialPayload"/>
+		<ee:transform doc:name="Transform Message" doc:id="f14b3bfc-eeba-431e-8076-f09ebf0252da" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="successResponse" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+				<ee:set-variable variableName="errorResponse" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="c24700f2-87ab-4145-be71-c2803b2ada18" collection="#[vars.initialPayload]">
+			<try doc:name="Try" doc:id="a8b8520c-4d36-4933-9a56-1f2b3a01107a" >
+				<logger level="INFO" doc:name="Logger" doc:id="6e0065c5-8ba8-44f3-9ab7-36adc7d0d637" message="#[payload]" />
+				<set-payload value="#[payload * 10]" doc:name="Set Payload" doc:id="3d78301b-30ab-4007-8232-3d1f9543c8d2" />
+				<logger level="INFO" doc:name="Logger" doc:id="c0be2624-19f7-40eb-bbe8-fbdcf84e2e8b" message="#[payload]" />
+				<ee:transform doc:name="successRes var" doc:id="a953df3f-dd60-469a-b7d7-7d7841659437" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="successResponse" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.successResponse + payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8d829af9-64e3-48d7-979d-14495bc0f148" >
+						<logger level="INFO" doc:name="Logger" doc:id="d8b062d1-b57f-4921-9162-0b7082e84b04" message="#[payload]"/>
+						<ee:transform doc:name="errorRes var" doc:id="1b612507-e499-4ee0-8526-1180a9cba686" >
+							<ee:message >
+							</ee:message>
+							<ee:variables >
+								<ee:set-variable variableName="errorResponse" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.errorResponse + payload]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</foreach>
+		<ee:transform doc:name="final Response" doc:id="c9a90a43-06fb-421e-b2c7-1216a3f19bd4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"suucessResponse": vars.successResponse,
+	"errorResponse": vars.errorResponse
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<!-- [STUDIO:"Set Payload"]<set-payload value="completed successfully" doc:name="Set Payload" doc:id="d8d6f94b-9d94-4590-83b8-bd724e4e88f6" /> [STUDIO] -->
+		<logger level="INFO" doc:name="End Logger" doc:id="1d5ea1a4-a8bc-43d9-bea7-6cd92819d005" message="for each proccess success"/>
+	</flow>
+</mule>
